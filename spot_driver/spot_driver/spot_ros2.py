@@ -1993,7 +1993,7 @@ class SpotROS(Node):
         if not self.spot_wrapper:
             self.get_logger().info(f"Mock mode, received command vel {data}")
             return
-        self.spot_wrapper.spot_arm.arm_joint_cmd(data.joint_target, self.cmd_duration)
+        self.spot_wrapper.spot_arm.arm_joint_move(data.joint_target, self.cmd_duration)
 
 
     def body_pose_callback(self, data: Pose) -> None:
