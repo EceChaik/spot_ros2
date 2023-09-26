@@ -34,6 +34,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/BatteryStateArray.msg"
   "msg/BehaviorFault.msg"
   "msg/EStopStateArray.msg"
+  "msg/ArmJointMove.msg"
   "msg/FootStateArray.msg"
   "msg/LeaseArray.msg"
   "msg/LeaseOwner.msg"

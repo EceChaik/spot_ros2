@@ -102,6 +102,7 @@ from spot_msgs.msg import (  # type: ignore
     PowerState,
     SystemFaultState,
     WiFiState,
+    ArmJointMove,
 )
 from spot_msgs.srv import (  # type: ignore
     ClearBehaviorFault,
@@ -445,6 +446,7 @@ class SpotROS(Node):
             self.manipulator_state_pub: Publisher = self.create_publisher(ManipulatorState, "manipulation_state", 1)
 
         self.create_subscription(Twist, "cmd_vel", self.cmd_velocity_callback, 1, callback_group=self.group)
+        self.create_subscription(ArmJointMove, "arm_joint_move", self.cmd_arm_joint_callback, 1, callback_group=self.group)        
         self.create_subscription(Pose, "body_pose", self.body_pose_callback, 1, callback_group=self.group)
         self.create_service(
             Trigger,
@@ -691,6 +693,18 @@ class SpotROS(Node):
                     request,
                     response,
                 ),
+                callback_group=self.group,
+            )
+            self.create_service(
+                Trigger,
+                "gripper_open",
+                lambda request, response: self.service_wrapper("gripper_open", self.handle_gripper_open, request, response),
+                callback_group=self.group,
+            )
+            self.create_service(
+                Trigger,
+                "gripper_close",
+                lambda request, response: self.service_wrapper("gripper_close", self.handle_gripper_close, request, response),
                 callback_group=self.group,
             )
 
@@ -1059,6 +1073,24 @@ class SpotROS(Node):
             response.message = "Spot wrapper is undefined"
             return response
         response.success, response.message = self.spot_wrapper.sit()
+        return response
+
+     def handle_gripper_open(self, request: Trigger.Request, response: Trigger.Response) -> Trigger.Response:
+        """ROS service handler for the gripper_open service"""
+        if self.spot_wrapper is None:
+            response.success = False
+            response.message = "Spot wrapper is undefined"
+            return response
+        response.success, response.message = self.spot_wrapper.spot_arm.gripper_open()
+        return response
+
+    def handle_gripper_close(self, request: Trigger.Request, response: Trigger.Response) -> Trigger.Response:
+        """ROS service handler for the gripper_close service"""
+        if self.spot_wrapper is None:
+            response.success = False
+            response.message = "Spot wrapper is undefined"
+            return response
+        response.success, response.message = self.spot_wrapper.spot_arm.gripper_close()
         return response
 
     def handle_stand(self, request: Trigger.Request, response: Trigger.Response) -> Trigger.Response:
@@ -1955,6 +1987,14 @@ class SpotROS(Node):
             self.get_logger().info(f"Mock mode, received command vel {data}")
             return
         self.spot_wrapper.velocity_cmd(data.linear.x, data.linear.y, data.angular.z, self.cmd_duration)
+
+    def cmd_arm_joint_callback(self, data: ArmJointMove) -> None:
+        """Callback for cmd_arm_joint_move command"""
+        if not self.spot_wrapper:
+            self.get_logger().info(f"Mock mode, received command vel {data}")
+            return
+        self.spot_wrapper.spot_arm.arm_joint_cmd(data, self.cmd_duration)
+
 
     def body_pose_callback(self, data: Pose) -> None:
         """Callback for cmd_vel command"""
